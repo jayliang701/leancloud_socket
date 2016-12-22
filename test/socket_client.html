@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>socket client</title>
+    <script src="socket.io.js"></script>
+</head>
+<body>
+    <div class="head">
+        <label>server address: </label><input type="text" value="http://localhost:3000"> <input type="button" value="connect" onclick="connect()">
+    </div>
+    <div id="log">
+
+    </div>
+</body>
+<style>
+    body,html { width:100%; height:100%; margin:0; padding:0; }
+    body { overflow: hidden; }
+    div.head { width:100%; height:42px; padding: 5px; text-align:left; vertical-align: middle; line-height: 42px; background-color: #1b1b1b; color: #fff; }
+    #log { width:100%; padding:5px 10px 5px 10px; }
+</style>
+<script>
+
+    function log(str) {
+        var con = document.getElementById("log");
+        con.innerHTML += '<p>' + str + '</p>';
+    }
+
+    var socket;
+    function connect() {
+        socket = io("http://localhost:3000");
+
+        socket.on('connect', function(){
+            log('connected...my socket id: ' + socket.id);
+        });
+        socket.on('disconnect', function(){
+            log('disconnected...');
+        });
+        /* 接收自定义消息 */
+        socket.on('welcome', function(data){
+            log('welcome! your ip is ' + data.ip + ":" + data.port);
+        });
+        socket.on('time_update', function(data){
+            log('now is : ' + new Date(data.time).toLocaleTimeString());
+        });
+    }
+
+</script>
+</html>
