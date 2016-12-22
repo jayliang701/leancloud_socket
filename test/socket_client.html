@@ -38,11 +38,22 @@
         });
         /* 接收自定义消息 */
         socket.on('welcome', function(data){
+            data = parsePacket(data);
             log('welcome! your ip is ' + data.ip + ":" + data.port);
         });
         socket.on('time_update', function(data){
+            data = parsePacket(data);
             log('now is : ' + new Date(data.time).toLocaleTimeString());
         });
+    }
+
+    function parsePacket(buffer){
+        var arr = new Uint8Array(buffer);
+        var str = String.fromCharCode.apply(String, arr);
+        if(/[\u0080-\uffff]/.test(str)){
+            throw new Error("this string seems to contain (still encoded) multibytes");
+        }
+        return JSON.parse(str);
     }
 
 </script>
