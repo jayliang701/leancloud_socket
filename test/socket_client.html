@@ -7,7 +7,7 @@
 </head>
 <body>
     <div class="head">
-        <label>server address: </label><input type="text" value="http://localhost:3000"> <input type="button" value="connect" onclick="connect()">
+        <label>server address: </label><input id="serverAddress" type="text" value="http://localhost:3000"> <input type="button" value="connect" onclick="connect()">
     </div>
     <div id="log">
 
@@ -28,7 +28,7 @@
 
     var socket;
     function connect() {
-        socket = io("http://localhost:3000");
+        socket = io(document.getElementById("serverAddress").value);
 
         socket.on('connect', function(){
             log('connected...my socket id: ' + socket.id);
