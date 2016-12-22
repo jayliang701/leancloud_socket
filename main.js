@@ -1,10 +1,13 @@
 /**
  * Created by Jay on 2016/12/22.
  */
-
+var PORT = 3000;
 var BufferHelper = require('bufferhelper');
 var fs = require('fs');
-var io = require('socket.io')(3000);
+var io = require('socket.io')(PORT);
+
+var liveNum = 0;
+
 io.on('connection', function(socket){
     liveNum ++;
 
@@ -43,11 +46,11 @@ io.on('connection', function(socket){
 
     /* 向客户端推送消息 */
     //例如当客户端连接后，马上发送一个欢迎的消息
-    socket.sendAsBuffer('welcome', { ip:socket.info.ip, port:socket.info.port });
+    socket.emit('welcome', { ip:socket.info.ip, port:socket.info.port });
 
     //例如定时发送消息给客户端
     socket.__timer = setInterval(function() {
-        socket.sendAsBuffer('time_update', { time: Date.now() });
+        socket.emit('time_update', { time: Date.now() });
     }, 3000);
 
     //////////////////////
@@ -69,4 +72,4 @@ io.on('connection', function(socket){
     });
 });
 
-var liveNum = 0;
+console.log('server startup on port: ' + PORT);

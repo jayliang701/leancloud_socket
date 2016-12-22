@@ -48,12 +48,16 @@
     }
 
     function parsePacket(buffer){
-        var arr = new Uint8Array(buffer);
-        var str = String.fromCharCode.apply(String, arr);
-        if(/[\u0080-\uffff]/.test(str)){
-            throw new Error("this string seems to contain (still encoded) multibytes");
+        if (buffer instanceof ArrayBuffer) {
+            var arr = new Uint8Array(buffer);
+            var str = String.fromCharCode.apply(String, arr);
+            if(/[\u0080-\uffff]/.test(str)){
+                throw new Error("this string seems to contain (still encoded) multibytes");
+            }
+            return JSON.parse(str);
+        } else {
+            return buffer;
         }
-        return JSON.parse(str);
     }
 
 </script>
