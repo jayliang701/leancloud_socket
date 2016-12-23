@@ -51,7 +51,7 @@ function onClientConnected(socket) {
 }
 
 exports.init = function(httpServer) {
-    io = require('magicfish_web/node_modules/socket.io')(httpServer);
+    io = require('socket.io')(httpServer);
 
     io.on('connection', onClientConnected);
 }

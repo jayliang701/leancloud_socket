@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "leanengine": "^1.2.3",
-    "magicfish_web": "^1.5.0"
+    "magicfish_web": "^1.5.0",
+    "socket.io": "^1.7.2"
   }
 }
