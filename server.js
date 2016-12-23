@@ -6,6 +6,7 @@ var Utils = require("magicfish_web/utils/Utils");
 var App = require("magicfish_web/App");
 var WebSocketServer = require("./server/socket/WebSocketServer");
 var app = new App();
+global.VARS.env = process.env.env || global.VARS.env;
 
 var Setting = global.SETTING;
 
