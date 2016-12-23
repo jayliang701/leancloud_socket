@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>socket client</title>
+    <script src="{{setting.RES_CDN_DOMAIN}}/js/socket.io.js"></script>
+</head>
+<body onresize="resized()">
+    <div class="head">
+        <label>服务器地址</label>
+        <input style="width: 300px;" id="serverAddress" type="text" value="http://localhost:3000">
+        <input id="connectBtn" type="button" value="连接" onclick="connect()">
+        <input id="disconnectBtn" type="button" value="断开" disabled onclick="disconnect()">
+        <label style="margin-left: 30px;">当前服务器时间: <span id="time">N/A</span></label>
+        <label style="margin-left: 30px;">延时: <span id="delay">N/A</span></label>
+    </div>
+    <div id="log">
+
+    </div>
+</body>
+<style>
+    body,html { width:100%; height:100%; margin:0; padding:0; }
+    body { overflow: hidden; }
+    div.head { width:100%; height:42px; padding: 5px; text-align:left; vertical-align: middle; line-height: 42px; background-color: #1b1b1b; color: #fff; }
+    #log { width:100%; padding:5px 10px 5px 10px; overflow-y: auto; }
+</style>
+<script>
+
+    function resized() {
+        var logEle = document.getElementById("log");
+        logEle.style.height = ((document.body.clientHeight || document.body.offsetHeight) - 52) + "px";
+    }
+    resized();
+
+    function log(str) {
+        var con = document.getElementById("log");
+        con.innerHTML += '<p>' + str + '</p>';
+
+        con.scrollTop = (con.clientHeight || con.offsetHeight);
+    }
+
+    var socket;
+    function connect() {
+        log('try to connect...');
+        document.getElementById("connectBtn").setAttribute("disabled", "true");
+        document.getElementById("disconnectBtn").removeAttribute("disabled");
+
+        socket = io(document.getElementById("serverAddress").value);
+
+        socket.on('connect_error', function(){
+            log('connect error');
+        });
+        socket.on('connect_timeout', function(){
+            log('connect timeout');
+        });
+        socket.on('reconnecting', function(){
+            log('retry...');
+        });
+        socket.on('connect', function(){
+            log('connected...my socket id: ' + socket.id);
+        });
+        socket.on('disconnect', function(){
+            log('disconnected...');
+            document.getElementById("time").innerHTML = "N/A";
+            document.getElementById("delay").innerHTML = "N/A";
+            setTimeout(disconnect, 100);
+        });
+        /* 接收自定义消息 */
+        socket.on('welcome', function(data){
+            data = parsePacket(data);
+            log('welcome! your ip is ' + data.ip + ":" + data.port);
+            ping();
+        });
+        socket.on('pong', function(data){
+            data = parsePacket(data);
+            var d = new Date(data.time);
+            document.getElementById("time").innerHTML = d.toLocaleDateString() + " " + d.toLocaleTimeString();
+            var costTime = Date.now() - window.pingStartTime;
+            document.getElementById("delay").innerHTML = costTime + "ms";
+
+            window.pingTimer = setTimeout(function() {
+                ping();
+            }, 3000);
+        });
+    }
+
+    function disconnect() {
+        socket && socket.connected && socket.close();
+
+        document.getElementById("disconnectBtn").setAttribute("disabled", "true");
+        document.getElementById("connectBtn").removeAttribute("disabled");
+    }
+
+    function ping() {
+        window.pingStartTime = Date.now();
+        socket && socket.connected && socket.emit("ping", { time:window.pingStartTime });
+    }
+
+    function parsePacket(buffer){
+        if (buffer instanceof ArrayBuffer) {
+            var arr = new Uint8Array(buffer);
+            var str = String.fromCharCode.apply(String, arr);
+            if(/[\u0080-\uffff]/.test(str)){
+                throw new Error("this string seems to contain (still encoded) multibytes");
+            }
+            return JSON.parse(str);
+        } else {
+            return buffer;
+        }
+    }
+
+</script>
+</html>

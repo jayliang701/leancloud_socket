@@ -12,9 +12,7 @@
     "node": "*"
   },
   "dependencies": {
-    "bufferhelper": "^0.2.1",
-    "express": "^4.14.0",
     "leanengine": "^1.2.3",
-    "socket.io": "^1.7.2"
+    "magicfish_web": "^1.5.0"
   }
 }
