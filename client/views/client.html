@@ -3,16 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <title>socket client</title>
+    <script src="{{setting.RES_CDN_DOMAIN}}/js/moment.min.js"></script>
     <script src="{{setting.RES_CDN_DOMAIN}}/js/socket.io.js"></script>
 </head>
 <body onresize="resized()">
     <div class="head">
         <label>服务器地址</label>
-        <input style="width: 300px;" id="serverAddress" type="text" value="http://localhost:3000">
+        <input style="width: 300px;" id="serverAddress" type="text" value="{{data.url}}">
         <input id="connectBtn" type="button" value="连接" onclick="connect()">
-        <input id="disconnectBtn" type="button" value="断开" disabled onclick="disconnect()">
+        <input id="disconnectBtn" type="button" value="断开" disabled onclick="disconnect(true)">
         <label style="margin-left: 30px;">当前服务器时间: <span id="time">N/A</span></label>
         <label style="margin-left: 30px;">延时: <span id="delay">N/A</span></label>
+        <label style="margin-left: 30px;">平均延时: <span id="avg_delay">N/A</span></label>
+        <label style="margin-left: 30px;">最大延时: <span id="max_delay">N/A</span></label>
+        <label style="margin-left: 30px;">连接时间: <span id="live_time">N/A</span></label>
     </div>
     <div id="log">
 
@@ -25,6 +29,8 @@
     #log { width:100%; padding:5px 10px 5px 10px; overflow-y: auto; }
 </style>
 <script>
+
+    moment.locale('zh-cn');
 
     function resized() {
         var logEle = document.getElementById("log");
@@ -39,13 +45,24 @@
         con.scrollTop = (con.clientHeight || con.offsetHeight);
     }
 
-    var socket;
+    var socket,avgDelay = 0,maxDelay = 0,pingTime = 0,totalDelay = 0;
     function connect() {
+
+        if (socket) {
+            try {
+                socket.close();
+            } catch (err) {
+
+            }
+            socket = undefined;
+            setTimeout(connect, 100);
+            return;
+        }
+
         log('try to connect...');
         document.getElementById("connectBtn").setAttribute("disabled", "true");
-        document.getElementById("disconnectBtn").removeAttribute("disabled");
 
-        socket = io(document.getElementById("serverAddress").value);
+        socket = io(document.getElementById("serverAddress").value, { forceNew:true });
 
         socket.on('connect_error', function(){
             log('connect error');
@@ -58,11 +75,12 @@
         });
         socket.on('connect', function(){
             log('connected...my socket id: ' + socket.id);
+            document.getElementById("connectBtn").setAttribute("disabled", "true");
+            document.getElementById("disconnectBtn").removeAttribute("disabled");
+            window.connectStartTime = new Date().getTime();
         });
         socket.on('disconnect', function(){
             log('disconnected...');
-            document.getElementById("time").innerHTML = "N/A";
-            document.getElementById("delay").innerHTML = "N/A";
             setTimeout(disconnect, 100);
         });
         /* 接收自定义消息 */
@@ -75,8 +93,20 @@
             data = parsePacket(data);
             var d = new Date(data.time);
             document.getElementById("time").innerHTML = d.toLocaleDateString() + " " + d.toLocaleTimeString();
-            var costTime = Date.now() - window.pingStartTime;
+            var costTime = new Date().getTime() - window.pingStartTime;
             document.getElementById("delay").innerHTML = costTime + "ms";
+
+            if (window.connectStartTime) {
+                document.getElementById("live_time").innerHTML = countLiveTime();
+            }
+
+            pingTime ++;
+            totalDelay += costTime;
+            maxDelay = Math.max(maxDelay, costTime);
+            //avgDelay = parseInt((avgDelay * pingTime + costTime) / (pingTime + 1));
+            avgDelay = Number(totalDelay / pingTime).toFixed(2);
+            document.getElementById("avg_delay").innerHTML = avgDelay + "ms";
+            document.getElementById("max_delay").innerHTML = maxDelay + "ms";
 
             window.pingTimer = setTimeout(function() {
                 ping();
@@ -84,15 +114,52 @@
         });
     }
 
-    function disconnect() {
-        socket && socket.connected && socket.close();
+    function countLiveTime() {
+        var liveTime = new Date().getTime() - window.connectStartTime;
+        liveTime = liveTime / 1000;
+        if (liveTime < 60) {
+            liveTime = moment.duration(2, "seconds").humanize();
+        } else if (liveTime >= 60 && liveTime < 3600) {
+            liveTime = moment.duration(2, "minutes").humanize();
+        } else if (liveTime >= 3600) {
+            var temp = "";
+            var day = Math.floor(liveTime / (3600 * 24));
+            var hour = (liveTime - day * (3600 * 24)) / 3600;
 
+            if (day > 0) {
+                temp = moment.duration(day, "days").humanize() + " ";
+            }
+            temp += moment.duration(hour, "hours").humanize();
+            liveTime = temp;
+        }
+        return liveTime;
+    }
+
+    function disconnect(destory) {
         document.getElementById("disconnectBtn").setAttribute("disabled", "true");
         document.getElementById("connectBtn").removeAttribute("disabled");
+
+        document.getElementById("time").innerHTML = "N/A";
+        document.getElementById("delay").innerHTML = "N/A";
+
+        document.getElementById("live_time").innerHTML = countLiveTime();
+        window.connectStartTime = undefined;
+
+        clearTimeout(window.pingTimer);
+        window.pingTimer = undefined;
+
+        if (destory && socket) {
+            socket.removeAllListeners("pong");
+            socket.removeAllListeners("welcome");
+            socket.removeAllListeners("connect");
+            socket.removeAllListeners("disconnect");
+            socket.connected && socket.close();
+            socket = undefined;
+        }
     }
 
     function ping() {
-        window.pingStartTime = Date.now();
+        window.pingStartTime = new Date().getTime();
         socket && socket.connected && socket.emit("ping", { time:window.pingStartTime });
     }
 
