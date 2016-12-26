@@ -7,7 +7,7 @@ function renderIndexPage(req, res, output, user) {
 }
 
 function renderClientPage(req, res, output, user) {
-    output({ });
+    output({ url:Setting.site });
 }
 
 exports.getRouterMap = function() {
